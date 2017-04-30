@@ -1,0 +1,32 @@
+heat_template_version: 2017-09-01
+
+resources:
+  db:
+    type: OS::Zun::Container
+    properties:
+      image: mysql
+      environment:
+        MYSQL_ROOT_PASSWORD: rootpass
+        MYSQL_DATABASE: wordpress
+  wordpress:
+    type: OS::Zun::Container
+    properties:
+      image: "wordpress:latest"
+      environment:
+        WORDPRESS_DB_HOST: {get_attr: [db, addresses, private, 0, addr]}
+        WORDPRESS_DB_USER: root
+        WORDPRESS_DB_PASSWORD: rootpass
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: public
+  association:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: floating_ip }
+      port_id: {get_attr: [wordpress, addresses, private, 0, port]}
+
+outputs:
+  url:
+    value: {get_attr: [floating_ip, floating_ip_address]}
+    description: The web server url
