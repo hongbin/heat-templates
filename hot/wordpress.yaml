@@ -1,13 +1,28 @@
 heat_template_version: 2017-09-01
 
 resources:
+  secgroup:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: sg_wordpress
+      description: wordpress security group
+      rules:
+      - protocol: icmp
+      - protocol: tcp
+        port_range_min: 80
+        port_range_max: 80
+      - protocol: tcp
+        port_range_min: 3306
+        port_range_max: 3306
   db:
     type: OS::Zun::Container
     properties:
-      image: mysql
+      image: mysql:5.7
       environment:
         MYSQL_ROOT_PASSWORD: rootpass
         MYSQL_DATABASE: wordpress
+      security_groups:
+      - {get_resource: secgroup}
   wordpress:
     type: OS::Zun::Container
     properties:
@@ -16,6 +31,8 @@ resources:
         WORDPRESS_DB_HOST: {get_attr: [db, addresses, private, 0, addr]}
         WORDPRESS_DB_USER: root
         WORDPRESS_DB_PASSWORD: rootpass
+      security_groups:
+      - {get_resource: secgroup}
   floating_ip:
     type: OS::Neutron::FloatingIP
     properties:
